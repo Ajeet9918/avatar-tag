@@ -4,7 +4,8 @@ let taggerId = null;
 let roundActive = true;
 let winnerId = null;
 
-const socket = new WebSocket(`ws://${location.host}`);
+const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+const socket = new WebSocket(`${wsProtocol}://${location.host}`);
 
 socket.onopen = () => console.log('Connected to server');
 socket.onclose = () => console.log('Disconnected from server');
