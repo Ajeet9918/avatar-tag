@@ -88,36 +88,56 @@ function drawItRing(x, y) {
     ctx.stroke();
 }
 
-function render() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    ctx.fillStyle = myColor;
+function drawPlayer(x, y, color, isTagger) {
+    ctx.save();
+    ctx.shadowColor = color;
+    ctx.shadowBlur = isTagger ? 25 : 12;
+    ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(player.x, player.y, 15, 0, Math.PI * 2);
+    ctx.arc(x, y, 15, 0, Math.PI * 2);
     ctx.fill();
-    if (myId === taggerId) drawItRing(player.x, player.y);
+    ctx.restore();
+
+    if (isTagger) {
+        const pulse = 4 * Math.sin(performance.now() / 150);
+        ctx.strokeStyle = '#ffdd33';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.arc(x, y, 24 + pulse, 0, Math.PI * 2);
+        ctx.stroke();
+    }
+}
+
+function render() {
+    // fading trail effect instead of a hard clear
+    ctx.fillStyle = 'rgba(18, 18, 31, 0.25)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    drawPlayer(player.x, player.y, myColor, myId === taggerId);
 
     for (const id in otherPlayers) {
         const p = otherPlayers[id];
-        ctx.fillStyle = p.color || '#f44';
-        ctx.beginPath();
-        ctx.arc(p.renderX, p.renderY, 15, 0, Math.PI * 2);
-        ctx.fill();
-        if (id === taggerId) drawItRing(p.renderX, p.renderY);
+        drawPlayer(p.renderX, p.renderY, p.color || '#f44', id === taggerId);
     }
 
-    // status banner
-    ctx.fillStyle = '#fff';
-    ctx.font = '20px sans-serif';
+    // HUD panel
+    ctx.fillStyle = 'rgba(255,255,255,0.9)';
+    ctx.font = 'bold 18px Segoe UI';
     if (!roundActive) {
-        const text = winnerId === myId ? 'YOU WIN!' : 'Game Over';
-        ctx.fillText(text, canvas.width / 2 - 60, 40);
-        ctx.font = '14px sans-serif';
-        ctx.fillText('Refresh or press R to restart', canvas.width / 2 - 90, 65);
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 32px Segoe UI';
+        ctx.fillStyle = winnerId === myId ? '#4dff88' : '#ff5566';
+        ctx.fillText(winnerId === myId ? '🏆 YOU WIN!' : 'Game Over', canvas.width / 2, 60);
+        ctx.font = '14px Segoe UI';
+        ctx.fillStyle = '#ccc';
+        ctx.fillText('Press R to restart', canvas.width / 2, 85);
+        ctx.textAlign = 'left';
     } else if (myId === taggerId) {
-        ctx.fillText('You are IT — catch someone!', 20, 30);
+        ctx.fillStyle = '#ffdd33';
+        ctx.fillText('You are IT catch someone!', 20, 32);
     } else {
-        ctx.fillText('Run!', 20, 30);
+        ctx.fillStyle = '#66ddff';
+        ctx.fillText('Run!', 20, 32);
     }
 }
 
