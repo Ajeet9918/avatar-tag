@@ -4,6 +4,15 @@ let taggerId = null;
 let roundActive = true;
 let winnerId = null;
 
+
+const restartBtn = document.getElementById('restart-btn');
+
+restartBtn.addEventListener('click', () => {
+    if (socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ type: 'restart' }));
+    }
+});
+
 const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 const joystickZone = document.getElementById('joystick-zone');
 const joystickStick = document.getElementById('joystick-stick');
@@ -190,16 +199,16 @@ function render() {
         ctx.font = 'bold 32px Segoe UI';
         ctx.fillStyle = winnerId === myId ? '#4dff88' : '#ff5566';
         ctx.fillText(winnerId === myId ? '🏆 YOU WIN!' : 'Game Over', canvas.width / 2, 60);
-        ctx.font = '14px Segoe UI';
-        ctx.fillStyle = '#ccc';
-        ctx.fillText('Press R to restart', canvas.width / 2, 85);
         ctx.textAlign = 'left';
+        restartBtn.style.display = 'block'; // NEW — show button
     } else if (myId === taggerId) {
         ctx.fillStyle = '#ffdd33';
         ctx.fillText('You are IT catch someone!', 20, 32);
+        restartBtn.style.display = 'none'; // NEW — hide during play
     } else {
         ctx.fillStyle = '#66ddff';
         ctx.fillText('Run!', 20, 32);
+        restartBtn.style.display = 'none'; // NEW — hide during play
     }
 }
 
