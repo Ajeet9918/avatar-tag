@@ -57,10 +57,9 @@ wss.on('connection', (ws) => {
             if (!p) return;
             const speed = 200;
             const dt = 1 / 60;
-            if (data.keys.up) p.y -= speed * dt;
-            if (data.keys.down) p.y += speed * dt;
-            if (data.keys.left) p.x -= speed * dt;
-            if (data.keys.right) p.x += speed * dt;
+
+            p.x += data.moveX * speed * dt;
+            p.y += data.moveY * speed * dt;
 
             const r = 15;
             p.x = Math.max(r, Math.min(800 - r, p.x));

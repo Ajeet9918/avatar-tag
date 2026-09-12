@@ -4,6 +4,71 @@ let taggerId = null;
 let roundActive = true;
 let winnerId = null;
 
+const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+const joystickZone = document.getElementById('joystick-zone');
+const joystickStick = document.getElementById('joystick-stick');
+
+if (isTouchDevice) joystickZone.style.display = 'block';
+
+// --- Joystick logic ---
+let joystickVector = { x: 0, y: 0 };
+let joystickActive = false;
+let joystickTouchId = null;
+const JOYSTICK_RADIUS = 90;
+
+function updateStickVisual(dx, dy) {
+    joystickStick.style.transform = `translate(${dx}px, ${dy}px)`;
+}
+
+function handleJoystickMove(clientX, clientY) {
+    const rect = joystickZone.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+
+    let dx = clientX - centerX;
+    let dy = clientY - centerY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    if (dist > JOYSTICK_RADIUS) {
+        dx = (dx / dist) * JOYSTICK_RADIUS;
+        dy = (dy / dist) * JOYSTICK_RADIUS;
+    }
+
+    updateStickVisual(dx, dy);
+    joystickVector.x = dx / JOYSTICK_RADIUS;
+    joystickVector.y = dy / JOYSTICK_RADIUS;
+}
+
+function resetJoystick() {
+    joystickActive = false;
+    joystickTouchId = null;
+    joystickVector.x = 0;
+    joystickVector.y = 0;
+    updateStickVisual(0, 0);
+}
+
+joystickZone.addEventListener('touchstart', (e) => {
+    const touch = e.changedTouches[0];
+    joystickActive = true;
+    joystickTouchId = touch.identifier;
+    handleJoystickMove(touch.clientX, touch.clientY);
+});
+
+joystickZone.addEventListener('touchmove', (e) => {
+    for (const touch of e.changedTouches) {
+        if (touch.identifier === joystickTouchId) {
+            handleJoystickMove(touch.clientX, touch.clientY);
+        }
+    }
+});
+
+window.addEventListener('touchend', (e) => {
+    for (const touch of e.changedTouches) {
+        if (touch.identifier === joystickTouchId) resetJoystick();
+    }
+});
+// --- End joystick logic ---
+
 const wsProtocol = location.protocol === 'https:' ? 'wss' : 'ws';
 const socket = new WebSocket(`${wsProtocol}://${location.host}`);
 
@@ -52,20 +117,26 @@ function interpolateOthers() {
 }
 
 function update(dt) {
-    if (!roundActive) return; // freeze movement after game over
+    if (!roundActive) return;
 
     const dtSec = dt / 1000;
-    const input = {
-        up: keys['ArrowUp'] || keys['w'],
-        down: keys['ArrowDown'] || keys['s'],
-        left: keys['ArrowLeft'] || keys['a'],
-        right: keys['ArrowRight'] || keys['d'],
-    };
 
-    if (input.up) player.y -= player.speed * dtSec;
-    if (input.down) player.y += player.speed * dtSec;
-    if (input.left) player.x -= player.speed * dtSec;
-    if (input.right) player.x += player.speed * dtSec;
+    let moveX = 0, moveY = 0;
+    if (keys['ArrowUp'] || keys['w']) moveY -= 1;
+    if (keys['ArrowDown'] || keys['s']) moveY += 1;
+    if (keys['ArrowLeft'] || keys['a']) moveX -= 1;
+    if (keys['ArrowRight'] || keys['d']) moveX += 1;
+
+    if (joystickActive) {
+        moveX = joystickVector.x;
+        moveY = joystickVector.y;
+    }
+
+    const mag = Math.sqrt(moveX * moveX + moveY * moveY);
+    if (mag > 1) { moveX /= mag; moveY /= mag; }
+
+    player.x += moveX * player.speed * dtSec;
+    player.y += moveY * player.speed * dtSec;
 
     const r = 15;
     player.x = Math.max(r, Math.min(canvas.width - r, player.x));
@@ -75,18 +146,10 @@ function update(dt) {
 
     if (socket.readyState === WebSocket.OPEN && myId) {
         inputSeq++;
-        const packet = { type: 'input', keys: input, seq: inputSeq };
+        const packet = { type: 'input', moveX, moveY, seq: inputSeq };
         pendingInputs.push(packet);
         socket.send(JSON.stringify(packet));
     }
-}
-
-function drawItRing(x, y) {
-    ctx.strokeStyle = '#ff0';
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(x, y, 22, 0, Math.PI * 2);
-    ctx.stroke();
 }
 
 function drawPlayer(x, y, color, isTagger) {
@@ -110,7 +173,6 @@ function drawPlayer(x, y, color, isTagger) {
 }
 
 function render() {
-    // fading trail effect instead of a hard clear
     ctx.fillStyle = 'rgba(18, 18, 31, 0.25)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
@@ -121,7 +183,6 @@ function render() {
         drawPlayer(p.renderX, p.renderY, p.color || '#f44', id === taggerId);
     }
 
-    // HUD panel
     ctx.fillStyle = 'rgba(255,255,255,0.9)';
     ctx.font = 'bold 18px Segoe UI';
     if (!roundActive) {
@@ -186,10 +247,8 @@ socket.onmessage = (msg) => {
                 }
                 for (const inp of pendingInputs) {
                     const dtSec = 1 / 60;
-                    if (inp.keys.up) player.y -= player.speed * dtSec;
-                    if (inp.keys.down) player.y += player.speed * dtSec;
-                    if (inp.keys.left) player.x -= player.speed * dtSec;
-                    if (inp.keys.right) player.x += player.speed * dtSec;
+                    player.x += inp.moveX * player.speed * dtSec;
+                    player.y += inp.moveY * player.speed * dtSec;
                 }
                 continue;
             }

@@ -3,24 +3,52 @@
 <head>
   <title>Avatar Tag</title>
   <style>
-    body {
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      background: radial-gradient(circle at center, #1a1a2e 0%, #0d0d17 100%);
-      font-family: 'Segoe UI', sans-serif;
-    }
-    canvas {
-      border-radius: 12px;
-      box-shadow: 0 0 40px rgba(80, 120, 255, 0.25);
-      background: #12121f;
-    }
-  </style>
+  body {
+    margin: 0; display: flex; justify-content: center; align-items: center;
+    min-height: 100vh; background: radial-gradient(circle at center, #1a1a2e 0%, #0d0d17 100%);
+    font-family: 'Segoe UI', sans-serif; touch-action: none;
+  }
+  canvas { border-radius: 12px; box-shadow: 0 0 40px rgba(80,120,255,0.25); background: #12121f; max-width: 95vw; height: auto; }
+
+ #joystick-zone {
+    position: fixed;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 180px;
+    height: 180px;
+    display: none;
+    touch-action: none;
+    z-index: 10;
+}
+#joystick-base {
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 2px solid rgba(255,255,255,0.2);
+    position: relative;
+}
+#joystick-stick {
+    width: 75px;
+    height: 75px;
+    border-radius: 50%;
+    background: rgba(102, 221, 255, 0.6);
+    border: 2px solid #66ddff;
+    position: absolute;
+    top: 52px;
+    left: 52px;
+    transition: transform 0.05s linear;
+}
+</style>
 </head>
 <body>
   <canvas id="game" width="800" height="600"></canvas>
+  <div id="joystick-zone">
+    <div id="joystick-base">
+      <div id="joystick-stick"></div>
+    </div>
+  </div>
   <script src="game.js"></script>
 </body>
 </html>
